@@ -13,15 +13,18 @@ export default function App() {
   return (
     <main>
       <h1>Dice Launcher</h1>
-      <div className="dice-buttons">
+      <p>Choisis un dé, ajuste le nombre et le modificateur, puis lance.</p>
+
+      <div className="box dice-buttons">
         {DICE.map((sides) => (
           <button key={sides} onClick={() => handleRoll(sides)}>
             Roll D{sides}
           </button>
         ))}
       </div>
+
       {result && (
-        <div className="result">
+        <div className="box result">
           <p>
             You rolled a {result.rolls} on a D{result.sides}!
           </p>

@@ -1,11 +1,22 @@
 html {
-  background-color: #044111;
+  background-color: #132422;
+  color: #f4efe0;
 }
 
 body {
   font-family: system-ui, sans-serif;
   text-align: center;
   margin: 2rem;
+}
+
+.box {
+  background-color: #1a2e2c;
+  color: #f0f0f0;
+  border: 0.1rem solid #f4efe0;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
 .dice-buttons {
