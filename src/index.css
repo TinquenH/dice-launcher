@@ -1,4 +1,27 @@
 html {
-  background-color: #001f0d;
-  color: #ffffff;
+  background-color: #044111;
+}
+
+body {
+  font-family: system-ui, sans-serif;
+  text-align: center;
+  margin: 2rem;
+}
+
+.dice-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+button {
+  padding: 0.75rem 1.25rem;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.result {
+  font-size: 2rem;
+  margin-top: 2rem;
 }
