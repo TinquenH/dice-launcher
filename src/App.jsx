@@ -7,6 +7,7 @@ const MIN_COUNT = 1;
 const MAX_COUNT = 20;
 const MIN_MOD = -20;
 const MAX_MOD = 20;
+const MAX_HISTORY = 10;
 
 // --- Fonctions utilitaires ---------------------------------------------
 // Garde `value` entre `min` et `max` : en dessous du min on renvoie le min,
@@ -20,6 +21,9 @@ const formatModifier = (modifier) => {
   return modifier > 0 ? `+${modifier}` : `${modifier}`;
 };
 
+const formatRoll = (roll) =>
+  `${roll.count}d${roll.sides}${formatModifier(roll.modifier)}`;
+
 export default function App() {
   // --- État ------------------------------------------------------------
   // Chaque useState est une "mémoire" du composant. Quand on appelle le
@@ -29,15 +33,22 @@ export default function App() {
   const [count, setCount] = useState(1); // nombre de dés à lancer (1 par défaut)
   const [modifier, setModifier] = useState(0); // bonus ou malus
   const [result, setResult] = useState(null); // null = aucun jet pour l'instant
+  const [history, setHistory] = useState([]); // liste des jets, vide au départ
 
   // --- Action ----------------------------------------------------------
   // Appelée seulement par le bouton "Lancer". On y stocke aussi sides et
   // count dans le résultat : si tu changes le dé APRES le lancer, le détail
   // affiché doit rester celui du jet qui a eu lieu, pas celui du réglage actuel.
   const handleRoll = () => {
-    setResult({ sides, count, ...rollDice(count, sides, modifier) });
-    // `...rollDice(...)` "déplie" l'objet renvoyé ({ rolls, modifier, total })
-    // dans le nouvel objet. Résultat final : { sides, count, rolls, modifier, total }
+    const roll = {
+      id: crypto.randomUUID(),
+      sides,
+      count,
+      ...rollDice(count, sides, modifier),
+    };
+
+    setResult(roll);
+    setHistory((prev) => [roll, ...prev].slice(0, MAX_HISTORY));
   };
 
   return (
@@ -136,13 +147,13 @@ export default function App() {
       </section>
 
       {/* Résultat ------------------------------------ */}
-      <section className="panel" id="result">
+      <section className="panel" id="result" aria-live="polite">
         {/* Condition ternaire : s'il y a un résultat on l'affiche, sinon "-" */}
         <div id="total">{result ? result.total : "–"}</div>
         <div id="detail">
           {result
             ? // Exemple : "2d6+3 : [4, 2]" ; join(", ") colle les jets avec des virgules
-              `${result.count}d${result.sides}${formatModifier(result.modifier)} : [${result.rolls.join(", ")}]`
+              `${formatRoll(result)} : [${result.rolls.join(", ")}]`
             : "Ton premier jet apparaîtra ici"}
         </div>
         <div id="note"></div> {/* (20 et 1 naturels) */}
@@ -152,9 +163,27 @@ export default function App() {
       <section className="panel" aria-label="Historique">
         <h2>Historique</h2>
         <ul id="history">
-          <li className="empty">Aucun jet pour le moment.</li>
+          {history.length === 0 ? (
+            <li className="empty">Aucun jet pour le moment.</li>
+          ) : (
+            history.map((roll) => (
+              <li key={roll.id}>
+                <span>
+                  {formatRoll(roll)}
+                  {""}
+                  <span className="rolls">[{roll.rolls.join(", ")}]</span>
+                </span>
+                <strong>{roll.total}</strong>
+              </li>
+            ))
+          )}
         </ul>
-        <button id="clear" type="button" hidden>
+        <button
+          id="clear"
+          type="button"
+          hidden={history.length === 0}
+          onClick={() => setHistory([])}
+        >
           Effacer l'historique
         </button>
       </section>
