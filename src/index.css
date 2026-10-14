@@ -141,6 +141,21 @@ h1 {
 .rolls {
   color: var(--muted);
 }
+.mode {
+  margin-top: 12px;
+}
+
+.mode button {
+  flex: 1;
+}
+
+.crit {
+  color: var(--crit);
+}
+
+.fail {
+  color: var(--fail);
+}
 #roll {
   width: 100%;
   margin-top: 16px;

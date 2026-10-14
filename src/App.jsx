@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { rollDice } from "./lib/dice.js";
+import { rollDice, rollD20 } from "./lib/dice.js";
 
 // --- Constantes ---------------------------------------------------------
 const DICE = [4, 6, 8, 10, 12, 20, 100];
@@ -8,6 +8,17 @@ const MAX_COUNT = 20;
 const MIN_MOD = -20;
 const MAX_MOD = 20;
 const MAX_HISTORY = 10;
+const MODES = [
+  { value: "normal", label: "Normal" },
+  { value: "advantage", label: "Avantage" },
+  { value: "disadvantage", label: "Désavantage" },
+];
+const MODE_LABELS = {
+  normal: "Normal",
+  advantage: "Avantage",
+  disadvantage: "Désavantage",
+};
+const NOTES = { crit: "Réussite critique !", fail: "Échec critique..." };
 
 // --- Fonctions utilitaires ---------------------------------------------
 // Garde `value` entre `min` et `max` : en dessous du min on renvoie le min,
@@ -21,8 +32,23 @@ const formatModifier = (modifier) => {
   return modifier > 0 ? `+${modifier}` : `${modifier}`;
 };
 
-const formatRoll = (roll) =>
-  `${roll.count}d${roll.sides}${formatModifier(roll.modifier)}`;
+const formatRoll = (roll) => {
+  const label = MODE_LABELS[roll.mode];
+  return `${roll.count}d${roll.sides}${formatModifier(roll.modifier)}${label ? ` ${label}` : ""}`;
+};
+
+const formatDetail = (roll) => {
+  const dice = `[${roll.rolls.join(", ")}]`;
+  return roll.mode === "normal"
+    ? `${formatRoll(roll)} : ${dice}`
+    : `${formatRoll(roll)} : ${dice} -> ${roll.kept}`;
+};
+
+const getOutcome = (roll) => {
+  if (roll.kept === 20) return "crit";
+  if (roll.kept === 1) return "fail";
+  return "";
+};
 
 export default function App() {
   // --- État ------------------------------------------------------------
@@ -34,18 +60,20 @@ export default function App() {
   const [modifier, setModifier] = useState(0); // bonus ou malus
   const [result, setResult] = useState(null); // null = aucun jet pour l'instant
   const [history, setHistory] = useState([]); // liste des jets, vide au départ
+  const [mode, setMode] = useState("normal"); // mode de jet (normal par défaut)
+
+  const isSingleD20 = sides === 20 && count === 1;
 
   // --- Action ----------------------------------------------------------
   // Appelée seulement par le bouton "Lancer". On y stocke aussi sides et
   // count dans le résultat : si tu changes le dé APRES le lancer, le détail
   // affiché doit rester celui du jet qui a eu lieu, pas celui du réglage actuel.
   const handleRoll = () => {
-    const roll = {
-      id: crypto.randomUUID(),
-      sides,
-      count,
-      ...rollDice(count, sides, modifier),
-    };
+    const base = isSingleD20
+      ? rollD20(modifier, mode)
+      : { ...rollDice(count, sides, modifier), mode: "normal" };
+
+    const roll = { id: crypto.randomUUID(), sides, count, ...base };
 
     setResult(roll);
     setHistory((prev) => [roll, ...prev].slice(0, MAX_HISTORY));
@@ -76,6 +104,21 @@ export default function App() {
             </button>
           ))}
         </div>
+
+        {isSingleD20 && (
+          <div className="dice mode" role="group" aria-label="Mode de lancer">
+            {MODES.map(({ value, label }) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={mode === value}
+                onClick={() => setMode(value)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="row">
           {/* Stepper du nombre de dés ------------------------------------ */}
@@ -148,15 +191,13 @@ export default function App() {
 
       {/* Résultat ------------------------------------ */}
       <section className="panel" id="result" aria-live="polite">
-        {/* Condition ternaire : s'il y a un résultat on l'affiche, sinon "-" */}
-        <div id="total">{result ? result.total : "–"}</div>
-        <div id="detail">
-          {result
-            ? // Exemple : "2d6+3 : [4, 2]" ; join(", ") colle les jets avec des virgules
-              `${formatRoll(result)} : [${result.rolls.join(", ")}]`
-            : "Ton premier jet apparaîtra ici"}
+        <div id="total" className={result ? getOutcome(result) : ""}>
+          {result ? result.total : "–"}
         </div>
-        <div id="note"></div> {/* (20 et 1 naturels) */}
+        <div id="detail">
+          {result ? formatDetail(result) : "Ton premier jet apparaîtra ici"}
+        </div>
+        <div id="note">{result ? NOTES[getOutcome(result)] : ""}</div>
       </section>
 
       {/* Historique ------------------------------------ */}
@@ -169,11 +210,10 @@ export default function App() {
             history.map((roll) => (
               <li key={roll.id}>
                 <span>
-                  {formatRoll(roll)}
-                  {""}
+                  {formatRoll(roll)}{" "}
                   <span className="rolls">[{roll.rolls.join(", ")}]</span>
                 </span>
-                <strong>{roll.total}</strong>
+                <strong className={getOutcome(roll)}>{roll.total}</strong>
               </li>
             ))
           )}
